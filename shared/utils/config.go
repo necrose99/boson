@@ -1,16 +1,18 @@
 package utils
 
 import (
-	"github.com/op/go-logging"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+
+	"github.com/op/go-logging"
 
 	"gopkg.in/yaml.v2"
 )
 
 var log = logging.MustGetLogger("boson")
 
+// Config represent the yaml configuration file
 type Config struct {
 	// Firewall_network_rules map[string]Options `yaml:"repository"`
 	Repository            string `yaml:"repository"`
@@ -32,6 +34,7 @@ type Config struct {
 	Args                  []string            `yaml:"args"`
 	TmpDir                string              `yaml:"tmpdir"`
 	Volumes               []string            `yaml:"volumes"`
+	WorkDir               string
 }
 
 //type Options struct {
@@ -39,6 +42,7 @@ type Config struct {
 //   Dst string
 //}
 
+// LoadConfig generate a Config from the given yaml file path
 func LoadConfig(f string) (Config, error) {
 
 	filename, _ := filepath.Abs(f)
@@ -52,16 +56,15 @@ func LoadConfig(f string) (Config, error) {
 	config.SeparateArtifacts = false
 	config.PollTime = 5
 	config.LogPerm = int(0644)
+	config.Artifacts = "/tmp"
 	config.TmpDir = "/var/tmp/boson/"
 	config.DockerSkipPull = false
 	err = yaml.Unmarshal(yamlFile, &config)
 
 	r, _ := regexp.Compile(`^.*?\/\/`)
 	config.RepositoryStripped = r.ReplaceAllString(config.Repository, "")
+	config.WorkDir = config.TmpDir + config.RepositoryStripped
 
-	if config.Artifacts == "" {
-		log.Fatal("You need to specify 'artifacts_dir'")
-	}
 	if config.DockerImage == "" {
 		log.Fatal("You need to specify a Docker image 'docker_image'")
 	}
